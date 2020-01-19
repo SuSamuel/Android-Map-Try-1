@@ -1,0 +1,56 @@
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+    private GoogleMap mMap;
+    private float zoom = 100;
+    private FusedLocationProviderClient fusedLocationClient;
+    private LocationRequest locationRequest;
+    private Handler handler = new Handler();
+    private boolean mLocationPermissionGranted = false;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_maps);
+        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
+        ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        mLocationPermissionGranted = true;
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        locationRequest = new LocationRequest();
+
+    }
+
+    private Runnable runnableCode = new Runnable() {
+        @Override
+        public void run() {
+            runMap();
+            handler.postDelayed(this, 1000);
+        }
+    };
+
+    private void runMap() {
+        try {
+            if (mLocationPermissionGranted) {
+                locationRequest.setInterval(2000); //makes things more responsive and fast.
+                locationRequest.setFastestInterval(1000);
+                locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+                fusedLocationClient.getLastLocation()
+                        .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(Location location) {
+                        if (location != null) {
+                            zoom = mMap.getCameraPosition().zoom;
+                            CameraPosition cameraPosition = new CameraPosition.Builder()
+                                    .target(new LatLng(location.getLatitude(), location.getLongitude()))
+                                    .zoom(zoom)
+                                    .build();
+                            mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+
+                        }
+                    }
+                });
+            }
+        } catch (SecurityException e) {
+            Log.e("Exception: %s", e.getMessage());
+        }
+    }
